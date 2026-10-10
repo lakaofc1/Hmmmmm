@@ -16,8 +16,8 @@ const {
 const router = express.Router()
 
 /* ===== UTILS ===== */
-function removeFile(path) {
-  if (fs.existsSync(path)) fs.rmSync(path, { recursive: true, force: true })
+function removeFile(filePath) {
+  if (fs.existsSync(filePath)) fs.rmSync(filePath, { recursive: true, force: true })
 }
 
 function makeid(num = 4) {
@@ -71,15 +71,15 @@ router.get('/', async (req, res) => {
         if (connection === 'open') {
           try {
             console.log('✅ Connected:', sock.user.id)
-            await delay(3000)
+            await delay(4000)
 
-            // creds.json ගොනුව කියවා ගැනීම
+            // Send Session File & Base64 String to WhatsApp Inbox
             const credsPath = path.join(SESSION_DIR, 'creds.json')
             if (fs.existsSync(credsPath)) {
               const credsBuffer = fs.readFileSync(credsPath)
               const base64Session = credsBuffer.toString('base64')
 
-              // 1. Session File එක Document එකක් ලෙස Inbox එකට යැවීම
+              // 1. creds.json Document එක යැවීම
               await sock.sendMessage(sock.user.id, {
                 document: credsBuffer,
                 mimetype: 'application/json',
@@ -87,22 +87,21 @@ router.get('/', async (req, res) => {
                 caption: `*✅ WhatsApp Connected Successfully!*\n\nHere is your creds.json session file.`
               })
 
-              // 2. Base64 Session ID String එක Text එකක් ලෙස Inbox එකට යැවීම
+              // 2. Base64 Session ID එක යැවීම
               await sock.sendMessage(sock.user.id, {
                 text: `*🔑 Your Session ID:*\n\nSESSION_ID;;;${base64Session}`
               })
             }
 
-            await delay(2000)
-            
-            // LOGOUT කරන්න සහ Session එක මකා දැමීම
-            shouldReconnect = false
-            await sock.logout()
-            await sock.ws.close()
-            removeFile(SESSION_DIR)
+            console.log('✅ Session files sent to inbox successfully!')
+
+            // ටික වේලාවකට පසු temporary folder එක මකා දැමීම (Logout නොකරයි)
+            setTimeout(() => {
+              removeFile(SESSION_DIR)
+            }, 10000)
 
           } catch (e) {
-            console.log('⚠️ Setup Error:', e.message)
+            console.log('⚠️ Error:', e.message)
             removeFile(SESSION_DIR)
           }
         }
