@@ -10,6 +10,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Web Frontend Interface
 app.get('/', (req, res) => {
     res.send(`
         <!DOCTYPE html>
@@ -41,10 +42,10 @@ app.get('/', (req, res) => {
                     if(!phone) { alert('Please enter phone number'); return; }
                     resultDiv.innerHTML = "Generating code, please wait...";
                     try {
-                        const res = await fetch('/code?phone=' + phone);
+                        const res = await fetch('/code?phone=' + encodeURIComponent(phone));
                         const data = await res.json();
                         if(data.code) {
-                            resultDiv.innerHTML = "<h3>Your Pairing Code:</h3><h1 style='color:#22c55e;background:#0f172a;padding:10px;border-radius:6px;letter-spacing:2px;'>" + data.code + "</h1><p>Check your WhatsApp inbox for the session file and ID after linking!</p>";
+                            resultDiv.innerHTML = "<h3>Your Pairing Code:</h3><h1 style='color:#22c55e;background:#0f172a;padding:10px;border-radius:6px;letter-spacing:2px;'>" + data.code + "</h1><p>Enter this code on your phone within 30 seconds!</p>";
                         } else {
                             resultDiv.innerHTML = "Error: " + (data.error || "Failed to generate");
                         }
@@ -78,14 +79,14 @@ app.get('/code', async (req, res) => {
             },
             printQRInTerminal: false,
             logger: pino({ level: "fatal" }),
-            browser: ["Ubuntu", "Chrome", "20.0.04"]
+            browser: ["Chrome (Linux)", "", ""]
         });
 
         sock.ev.on('creds.update', saveCreds);
 
         if (!sock.authState.creds.registered) {
-            await delay(1500);
-            phone = phone.replace(/[^0-9]/g, '');
+            // Heroku වලට time එක දීල smoothly connect වෙන්න delay එක වැඩි කළා
+            await delay(3000);
             let code = await sock.requestPairingCode(phone);
             code = code?.match(/.{1,4}/g)?.join("-") || code;
             res.json({ code: code });
@@ -96,13 +97,14 @@ app.get('/code', async (req, res) => {
         sock.ev.on('connection.update', async (update) => {
             const { connection } = update;
             if (connection === 'open') {
-                await delay(3000);
+                await delay(4000);
                 
                 const credsPath = path.join(sessionDir, 'creds.json');
                 if (fs.existsSync(credsPath)) {
                     const credsBuffer = fs.readFileSync(credsPath);
                     const base64Session = credsBuffer.toString('base64');
                     
+                    // 1. Send Session File Document
                     await sock.sendMessage(sock.user.id, {
                         document: credsBuffer,
                         mimetype: 'application/json',
@@ -110,11 +112,13 @@ app.get('/code', async (req, res) => {
                         caption: `*✅ WhatsApp Connected Successfully!*\n\nHere is your creds.json session file.`
                     });
 
+                    // 2. Send Base64 Session ID String
                     await sock.sendMessage(sock.user.id, {
                         text: `*🔑 Your Session ID:*\n\nSESSION_ID;;;${base64Session}`
                     });
                 }
 
+                // Clean up session directory
                 setTimeout(() => {
                     if (fs.existsSync(sessionDir)) {
                         fs.rmSync(sessionDir, { recursive: true, force: true });
