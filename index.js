@@ -42,7 +42,7 @@ app.post('/generate', async (req, res) => {
         const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
         const logger = pino({ level: 'fatal' });
 
-        const sock = makeWASocket({
+const sock = makeWASocket({
     version,
     logger,
     auth: {
@@ -52,9 +52,10 @@ app.post('/generate', async (req, res) => {
     printQRInTerminal: false,
     generateHighQualityLinkPreview: true,
     syncFullHistory: false,
-    browser: Browsers.ubuntu("Chrome"),
+    browser: ["Ubuntu", "Chrome", "20.0.04"],
     msgRetryCounterCache
 });
+
 
 
         sock.ev.on('creds.update', saveCreds);
