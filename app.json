@@ -1,0 +1,12 @@
+{
+  "name": "LashxBot Session Generator",
+  "description": "WhatsApp Baileys Session ID Generator for LashxBot",
+  "repository": "https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPOSITORY_NAME",
+  "logo": "https://i.ibb.co/6RqqZ5hg/file-000000005b908207bb180ce30137e11d.png",
+  "keywords": ["whatsapp", "baileys", "session-generator", "lashxbot"],
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ]
+}
