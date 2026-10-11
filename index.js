@@ -10,6 +10,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const pino = require('pino');
+const QRCode = require('qrcode');
 const NodeCache = require('node-cache');
 
 const app = express();
@@ -23,13 +24,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.post('/generate', async (req, res) => {
-    let phoneNumber = req.body.phone;
-    if (!phoneNumber) {
-        return res.json({ success: false, message: 'WhatsApp phone number is required!' });
-    }
-
-    phoneNumber = phoneNumber.replace(/\D/g, '');
+app.get('/qr', async (req, res) => {
     const sessionName = `session_${Date.now()}`;
     const sessionDir = path.join(__dirname, sessionName);
 
@@ -42,44 +37,60 @@ app.post('/generate', async (req, res) => {
         const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
         const logger = pino({ level: 'fatal' });
 
-const sock = makeWASocket({
-    version,
-    logger,
-    auth: {
-        creds: state.creds,
-        keys: makeCacheableSignalKeyStore(state.keys, logger)
-    },
-    printQRInTerminal: false,
-    generateHighQualityLinkPreview: true,
-    syncFullHistory: false,
-    browser: ["Ubuntu", "Chrome", "20.0.04"],
-    msgRetryCounterCache
-});
-
-
+        const sock = makeWASocket({
+            version,
+            logger,
+            auth: {
+                creds: state.creds,
+                keys: makeCacheableSignalKeyStore(state.keys, logger)
+            },
+            printQRInTerminal: false,
+            generateHighQualityLinkPreview: true,
+            syncFullHistory: false,
+            browser: Browsers.macOS("Desktop"),
+            msgRetryCounterCache
+        });
 
         sock.ev.on('creds.update', saveCreds);
 
-        sock.ev.on('connection.update', async (update) => {
-            const { connection } = update;
+        let qrSent = false;
 
+        sock.ev.on('connection.update', async (update) => {
+            const { connection, qr } = update;
+
+            // Send QR Code image to frontend
+            if (qr && !qrSent) {
+                qrSent = true;
+                try {
+                    const qrImageUrl = await QRCode.toDataURL(qr);
+                    if (!res.headersSent) {
+                        res.json({ success: true, qr: qrImageUrl });
+                    }
+                } catch (err) {
+                    if (!res.headersSent) {
+                        res.json({ success: false, message: 'Failed to generate QR image.' });
+                    }
+                }
+            }
+
+            // Connection Successful
             if (connection === 'open') {
-                console.log(`Session connected for ${phoneNumber}`);
+                console.log('Device Linked Successfully via QR Code!');
 
                 setTimeout(async () => {
                     try {
                         const credsPath = path.join(sessionDir, 'creds.json');
                         if (fs.existsSync(credsPath)) {
                             const credsData = fs.readFileSync(credsPath, 'utf8');
-                            const targetJid = `${phoneNumber}@s.whatsapp.net`;
+                            const userJid = sock.user.id.split(':')[0] + '@s.whatsapp.net';
 
                             const messageText = `✨ *LASHXBOT SESSION ID* ✨\n\nHeroku / Panel eke \`SESSION_ID\` variable ekata pahala thiyena text eka paste karaganna:\n\n\`\`\`${credsData}\`\`\`\n\n> © Powered by LashxBot`;
 
-                            await sock.sendMessage(targetJid, { text: messageText });
-                            console.log('Session ID sent to WhatsApp chat successfully!');
+                            await sock.sendMessage(userJid, { text: messageText });
+                            console.log('Session ID sent to WhatsApp!');
                         }
                     } catch (err) {
-                        console.error('Error sending session to WhatsApp:', err.message);
+                        console.error('Error sending session message:', err.message);
                     } finally {
                         setTimeout(() => {
                             if (fs.existsSync(sessionDir)) {
@@ -91,24 +102,13 @@ const sock = makeWASocket({
             }
         });
 
-        setTimeout(async () => {
-            try {
-                let code = await sock.requestPairingCode(phoneNumber);
-                code = code?.match(/.{1,4}/g)?.join('-') || code;
-                return res.json({ success: true, code: code });
-            } catch (err) {
-                if (fs.existsSync(sessionDir)) {
-                    fs.rmSync(sessionDir, { recursive: true, force: true });
-                }
-                return res.json({ success: false, message: 'Failed to request pairing code. Make sure country code is included.' });
-            }
-        }, 3000);
-
     } catch (err) {
+        if (!res.headersSent) {
+            res.json({ success: false, message: err.message });
+        }
         if (fs.existsSync(sessionDir)) {
             fs.rmSync(sessionDir, { recursive: true, force: true });
         }
-        return res.json({ success: false, message: err.message });
     }
 });
 
