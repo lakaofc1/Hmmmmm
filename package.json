@@ -1,7 +1,7 @@
 {
-  "name": "whatsapp-pair-bot",
+  "name": "lashxbot-session-generator",
   "version": "1.0.0",
-  "description": "WhatsApp Pair Code Session Generator with Latest Packages",
+  "description": "WhatsApp Baileys Session Generator for LashxBot",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
@@ -9,9 +9,7 @@
   "dependencies": {
     "@whiskeysockets/baileys": "latest",
     "express": "latest",
+    "node-cache": "latest",
     "pino": "latest"
-  },
-  "engines": {
-    "node": ">=18.x"
   }
 }
