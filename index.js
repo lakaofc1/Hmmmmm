@@ -43,18 +43,19 @@ app.post('/generate', async (req, res) => {
         const logger = pino({ level: 'fatal' });
 
         const sock = makeWASocket({
-            version,
-            logger,
-            auth: {
-                creds: state.creds,
-                keys: makeCacheableSignalKeyStore(state.keys, logger)
-            },
-            printQRInTerminal: false,
-            generateHighQualityLinkPreview: true,
-            syncFullHistory: false, // Fast session generation
-            browser: Browsers.macOS("Safari"),
-            msgRetryCounterCache
-        });
+    version,
+    logger,
+    auth: {
+        creds: state.creds,
+        keys: makeCacheableSignalKeyStore(state.keys, logger)
+    },
+    printQRInTerminal: false,
+    generateHighQualityLinkPreview: true,
+    syncFullHistory: false,
+    browser: Browsers.ubuntu("Chrome"),
+    msgRetryCounterCache
+});
+
 
         sock.ev.on('creds.update', saveCreds);
 
