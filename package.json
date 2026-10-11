@@ -1,7 +1,7 @@
 {
   "name": "lashxbot-session-generator",
   "version": "1.0.0",
-  "description": "WhatsApp Baileys Session Generator for LashxBot",
+  "description": "WhatsApp Baileys QR Session Generator for iPhone & All Devices",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
@@ -10,6 +10,7 @@
     "@whiskeysockets/baileys": "latest",
     "express": "latest",
     "node-cache": "latest",
-    "pino": "latest"
+    "pino": "latest",
+    "qrcode": "latest"
   }
 }
