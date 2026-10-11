@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LashxBot - Session ID Generator</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0b132b; color: #ffffff; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .container { background: #1c2541; border-radius: 16px; padding: 35px 25px; max-width: 420px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; border: 1px solid #3a506b; }
+        h2 { color: #48cae4; font-size: 24px; margin-bottom: 8px; }
+        p.subtitle { color: #8d99ae; font-size: 14px; margin-bottom: 25px; }
+        .input-group { text-align: left; margin-bottom: 20px; }
+        label { font-size: 13px; color: #caf0f8; margin-bottom: 6px; display: block; }
+        input { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid #3a506b; background: #0b132b; color: #fff; font-size: 16px; outline: none; transition: 0.3s; }
+        input:focus { border-color: #48cae4; box-shadow: 0 0 8px rgba(72, 202, 228, 0.4); }
+        button { width: 100%; padding: 14px; border-radius: 10px; border: none; background: #00b4d8; color: #fff; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #90e0ef; color: #0b132b; }
+        #result { margin-top: 25px; padding: 15px; border-radius: 10px; background: #0b132b; border: 1px dashed #3a506b; display: none; }
+        .code-box { font-size: 28px; font-weight: bold; color: #48cae4; letter-spacing: 3px; margin: 10px 0; }
+        .info-text { font-size: 13px; color: #a8dede; line-height: 1.4; }
+        .loading { color: #ffd166; font-size: 15px; }
+        .error { color: #ef476f; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>LashxBot Session Generator</h2>
+        <p class="subtitle">Get your WhatsApp session string for Heroku/Panels</p>
+        
+        <div class="input-group">
+            <label for="phone">WhatsApp Number (with Country Code)</label>
+            <input type="text" id="phone" placeholder="e.g. 94784185833">
+        </div>
+
+        <button onclick="getPairingCode()">Get Pairing Code</button>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function getPairingCode() {
+            const phoneInput = document.getElementById('phone').value.trim();
+            const resultDiv = document.getElementById('result');
+
+            if (!phoneInput) {
+                alert('Please enter your WhatsApp number!');
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="loading">Generating pairing code, please wait...</div>';
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: phoneInput })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="info-text">Enter this code in your WhatsApp:</div>
+                        <div class="code-box">${data.code}</div>
+                        <div class="info-text">Go to <b>Linked Devices -> Link with Phone Number</b>.<br>Once linked, the Session ID will be sent directly to your WhatsApp chat!</div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">Error: ${data.message}</div>`;
+                }
+            } catch (err) {
+                resultDiv.innerHTML = '<div class="error">Failed to connect to server!</div>';
+            }
+        }
+    </script>
+</body>
+</html>
