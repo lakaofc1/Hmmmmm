@@ -3,74 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LashxBot - Session ID Generator</title>
+    <title>LashxBot - QR Session Generator</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0b132b; color: #ffffff; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
-        .container { background: #1c2541; border-radius: 16px; padding: 35px 25px; max-width: 420px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; border: 1px solid #3a506b; }
-        h2 { color: #48cae4; font-size: 24px; margin-bottom: 8px; }
-        p.subtitle { color: #8d99ae; font-size: 14px; margin-bottom: 25px; }
-        .input-group { text-align: left; margin-bottom: 20px; }
-        label { font-size: 13px; color: #caf0f8; margin-bottom: 6px; display: block; }
-        input { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid #3a506b; background: #0b132b; color: #fff; font-size: 16px; outline: none; transition: 0.3s; }
-        input:focus { border-color: #48cae4; box-shadow: 0 0 8px rgba(72, 202, 228, 0.4); }
-        button { width: 100%; padding: 14px; border-radius: 10px; border: none; background: #00b4d8; color: #fff; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        button:hover { background: #90e0ef; color: #0b132b; }
-        #result { margin-top: 25px; padding: 15px; border-radius: 10px; background: #0b132b; border: 1px dashed #3a506b; display: none; }
-        .code-box { font-size: 28px; font-weight: bold; color: #48cae4; letter-spacing: 3px; margin: 10px 0; }
-        .info-text { font-size: 13px; color: #a8dede; line-height: 1.4; }
-        .loading { color: #ffd166; font-size: 15px; }
-        .error { color: #ef476f; font-size: 14px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #ffffff; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .container { background: #1e293b; border-radius: 20px; padding: 35px 25px; max-width: 400px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; border: 1px solid #334155; }
+        h2 { color: #38bdf8; font-size: 22px; margin-bottom: 8px; }
+        p.subtitle { color: #94a3b8; font-size: 14px; margin-bottom: 25px; }
+        button { width: 100%; padding: 14px; border-radius: 12px; border: none; background: #0284c7; color: #fff; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #0ea5e9; }
+        #qr-box { margin-top: 25px; display: none; background: #ffffff; padding: 15px; border-radius: 16px; width: fit-content; margin-left: auto; margin-right: auto; }
+        #qr-img { width: 230px; height: 230px; display: block; }
+        .info-text { margin-top: 20px; font-size: 13px; color: #cbd5e1; line-height: 1.5; }
+        .loading { color: #fbbf24; font-size: 15px; margin-top: 20px; }
+        .error { color: #f87171; font-size: 14px; margin-top: 20px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>LashxBot Session Generator</h2>
-        <p class="subtitle">Get your WhatsApp session string for Heroku/Panels</p>
-        
-        <div class="input-group">
-            <label for="phone">WhatsApp Number (with Country Code)</label>
-            <input type="text" id="phone" placeholder="e.g. 94784185833">
+        <h2>LashxBot QR Generator</h2>
+        <p class="subtitle">Scan the QR code using iPhone to get your Session ID</p>
+
+        <button onclick="generateQR()">Get QR Code</button>
+
+        <div id="status"></div>
+
+        <div id="qr-box">
+            <img id="qr-img" src="" alt="WhatsApp QR Code">
         </div>
 
-        <button onclick="getPairingCode()">Get Pairing Code</button>
-
-        <div id="result"></div>
+        <div id="info" class="info-text" style="display: none;">
+            Open <b>WhatsApp Settings -> Linked Devices -> Link a Device</b> and scan this QR code.<br><br>
+            <i>Once scanned, your Session ID will be sent directly to your WhatsApp chat!</i>
+        </div>
     </div>
 
     <script>
-        async function getPairingCode() {
-            const phoneInput = document.getElementById('phone').value.trim();
-            const resultDiv = document.getElementById('result');
+        async function generateQR() {
+            const statusDiv = document.getElementById('status');
+            const qrBox = document.getElementById('qr-box');
+            const qrImg = document.getElementById('qr-img');
+            const infoDiv = document.getElementById('info');
 
-            if (!phoneInput) {
-                alert('Please enter your WhatsApp number!');
-                return;
-            }
-
-            resultDiv.style.display = 'block';
-            resultDiv.innerHTML = '<div class="loading">Generating pairing code, please wait...</div>';
+            statusDiv.innerHTML = '<div class="loading">Generating QR Code, please wait...</div>';
+            qrBox.style.display = 'none';
+            infoDiv.style.display = 'none';
 
             try {
-                const response = await fetch('/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone: phoneInput })
-                });
-
+                const response = await fetch('/qr');
                 const data = await response.json();
 
-                if (data.success) {
-                    resultDiv.innerHTML = `
-                        <div class="info-text">Enter this code in your WhatsApp:</div>
-                        <div class="code-box">${data.code}</div>
-                        <div class="info-text">Go to <b>Linked Devices -> Link with Phone Number</b>.<br>Once linked, the Session ID will be sent directly to your WhatsApp chat!</div>
-                    `;
+                if (data.success && data.qr) {
+                    statusDiv.innerHTML = '';
+                    qrImg.src = data.qr;
+                    qrBox.style.display = 'block';
+                    infoDiv.style.display = 'block';
                 } else {
-                    resultDiv.innerHTML = `<div class="error">Error: ${data.message}</div>`;
+                    statusDiv.innerHTML = `<div class="error">Error: ${data.message || 'Failed to get QR Code'}</div>`;
                 }
             } catch (err) {
-                resultDiv.innerHTML = '<div class="error">Failed to connect to server!</div>';
+                statusDiv.innerHTML = '<div class="error">Server Connection Failed!</div>';
             }
         }
     </script>
